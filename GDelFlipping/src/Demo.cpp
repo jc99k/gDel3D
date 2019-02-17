@@ -40,6 +40,9 @@ DAMAGE.
 */
 
 #include <iomanip>
+#include <fstream>
+#include <vector>
+#include <string>
 
 #include "gDel3D/GpuDelaunay.h"
 
@@ -48,8 +51,8 @@ DAMAGE.
 
 const int deviceIdx     = 0; 
 const int seed          = 123456789;
-const int pointNum      = 100000; 
-const Distribution dist = UniformDistribution;
+const int pointNum      = 10000; 
+const Distribution dist = BallDistribution;
 
 Point3HVec   pointVec; 
 GDelOutput   output; 
@@ -95,6 +98,49 @@ int main( int argc, const char* argv[] )
 
     // 4. Summary
     summarize( pointNum, output ); 
+
+    // Points
+
+    std::ofstream myfile;
+    myfile.open ("tri.vtk");
+    myfile << "# vtk DataFile Version 1.0\nUnstructured Grid Example\nASCII\n\nDATASET UNSTRUCTURED_GRID\n";
+    myfile << "POINTS " << pointNum << " float" << '\n';
+    for(auto i = 0; i < pointNum; ++i) {
+        myfile << pointVec[i]._p[0] << " " << pointVec[i]._p[1] << " " << pointVec[i]._p[2] << '\n';
+    }
+
+    // Finite Cells
+
+    std::vector<std::string> finite_cells;
+    for(auto i = 0; i < output.tetVec.size(); ++i) {
+        int c_v0 = output.tetVec[i]._v[0];
+        int c_v1 = output.tetVec[i]._v[1];
+        int c_v2 = output.tetVec[i]._v[2];
+        int c_v3 = output.tetVec[i]._v[3];
+        if(c_v0 >= pointNum || c_v1 >= pointNum || c_v2 >= pointNum || c_v3 >= pointNum) {
+            continue;
+        }
+        finite_cells.push_back("4 " + std::to_string(c_v0) + " " + std::to_string(c_v1) + " " + std::to_string(c_v2) + " " + std::to_string(c_v3) + "\n");
+    }
+
+    myfile << "\nCELLS " << finite_cells.size() << " " << finite_cells.size()*5 << '\n';
+    for(auto i = 0; i < finite_cells.size(); ++i) {
+        myfile << finite_cells[i];
+    }
+    myfile << "\nCELL_TYPES " << finite_cells.size() << '\n';
+    for(auto i = 0; i < finite_cells.size(); ++i) {
+        myfile << "10 ";
+    }
+    myfile.close();
+
+    // for(auto i = 0; i < pointNum; ++i) {
+    //     std::cout << i << " " << pointVec[i]._p[0] << " " << pointVec[i]._p[1] << " " << pointVec[i]._p[2] << std::endl;
+    // }
+    
+    std::cout << output.tetVec.size() << std::endl;
+    // Get Tet data
+    // for i in 
+    // std::cout << output.tetVec[0]._v[0] << " " << output.tetVec[0]._v[1] << " " << output.tetVec[0]._v[2] << " " << output.tetVec[0]._v[3] << " " <<  std::endl;
 
     return 0;
 }
